@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      div#outside {margin: 0; padding: 0;height: 94%;overflow: hidden;}
+      div#inside {margin: 0; padding: 0;height: 94%;overflow: auto;}
+      #messages { list-style-type: none; margin: 0; padding: 0;height: 94vh;}
+      #messages li { padding: 5px 10px; }
+      #messages #status { background: #eee; text-align: center }
+
+      div.entername {opacity:1;background: #000;width:100%;height:100%;z-index:10;top:0;left:0;position:fixed;}
+      #name[type="text"] { position: fixed;top:50%;left:45%; border: 0;border-bottom: 1px solid white; }
+      }
+    </style>
+
+
+  </head>
+  <body>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script> 
+      var PageTitleNotification = {
+          Vars:{
+              OriginalTitle: document.title,
+              Interval: null
+          },    
+          On: function(notification, intervalSpeed){
+              var _this = this;
+              _this.Vars.Interval = setInterval(function(){
+                   document.title = (_this.Vars.OriginalTitle == document.title)
+                                       ? notification
+                                       : _this.Vars.OriginalTitle;
+              }, (intervalSpeed) ? intervalSpeed : 1000);
+          },
+          Off: function(){
+              clearInterval(this.Vars.Interval);
+              document.title = this.Vars.OriginalTitle;   
+          }
+      }
+
+
+      $(document).ready(function() {
+        var socket = io();
+        $("#name").keydown(function(e){
+            if(e.keyCode==13){
+
+              var username = $("#name").val();
+              $(".entername").empty();
+              $(".entername").remove();
+              socket.emit('user name', username);
+
+
+              
+        
+              $('form').submit(function(e){
+                e.preventDefault(e);
+                socket.emit('chat message', username+":"+$('#m').val());
+                $('#m').val('');
+                return false;
+              });
+              socket.on('chat message', function(msg){
+                PageTitleNotification.Off("Message received");
+                $('#messages').append($('<li>').text(msg));
+                $("#inside").scrollTop($("#inside")[0].scrollHeight);
+                PageTitleNotification.On("Message received");
+              });
+              socket.on('user status', function(msg){
+                $('#messages').append($('<li id="status">').text(msg));
+                $("#inside").scrollTop($("#inside")[0].scrollHeight);
+                PageTitleNotification.On("User status changed");
+              });
+
+            }
+        });
+
+        
+
+      });
+
+    </script>
+    <div class="entername">
+      <input id="name" type="text"/>
+    </div>
+
+    <div id="outside">
+      <div id="inside">
+        <ul id="messages"></ul>
+      </div>
+    
+      <form action="">
+        <input id="m" autocomplete="off" />
+        <button>Send</button>
+      </form>
+    </div>
+  </body>
+</html>
